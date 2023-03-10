@@ -66,7 +66,7 @@ VescDriver::VescDriver(const rclcpp::NodeOptions & options)
   fw_version_minor_(-1)
 {
   // get vesc serial port address
-  std::string port = declare_parameter<std::string>("port", "");
+  std::string port = get_parameter_or<std::string>("port", "");
 
   // attempt to connect to the serial port
   try {
@@ -350,47 +350,39 @@ VescDriver::CommandLimit::CommandLimit(
   name(str)
 {
   // check if user's minimum value is outside of the range min_lower to max_upper
-  auto param_min =
-    node_ptr->declare_parameter(name + "_min", rclcpp::ParameterValue(0.0));
+  const double param_min =
+    node_ptr->get_parameter_or(name + "_min", 0.0);
 
-  if (param_min.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET) {
-    if (min_lower && param_min.get<double>() < *min_lower) {
-      lower = *min_lower;
-      RCLCPP_WARN_STREAM(
-        logger, "Parameter " << name << "_min (" << param_min.get<double>() <<
-          ") is less than the feasible minimum (" << *min_lower << ").");
-    } else if (max_upper && param_min.get<double>() > *max_upper) {
-      lower = *max_upper;
-      RCLCPP_WARN_STREAM(
-        logger, "Parameter " << name << "_min (" << param_min.get<double>() <<
-          ") is greater than the feasible maximum (" << *max_upper << ").");
-    } else {
-      lower = param_min.get<double>();
-    }
-  } else if (min_lower) {
+  if (min_lower && param_min < *min_lower) {
     lower = *min_lower;
+    RCLCPP_WARN_STREAM(
+      logger, "Parameter " << name << "_min (" << param_min <<
+        ") is less than the feasible minimum (" << *min_lower << ").");
+  } else if (max_upper && param_min > *max_upper) {
+    lower = *max_upper;
+    RCLCPP_WARN_STREAM(
+      logger, "Parameter " << name << "_min (" << param_min <<
+        ") is greater than the feasible maximum (" << *max_upper << ").");
+  } else {
+    lower = param_min;
   }
 
   // check if the uers' maximum value is outside of the range min_lower to max_upper
-  auto param_max =
-    node_ptr->declare_parameter(name + "_max", rclcpp::ParameterValue(0.0));
+  const double param_max =
+    node_ptr->get_parameter_or(name + "_max", 0.0);
 
-  if (param_max.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET) {
-    if (min_lower && param_max.get<double>() < *min_lower) {
-      upper = *min_lower;
-      RCLCPP_WARN_STREAM(
-        logger, "Parameter " << name << "_max (" << param_max.get<double>() <<
-          ") is less than the feasible minimum (" << *min_lower << ").");
-    } else if (max_upper && param_max.get<double>() > *max_upper) {
-      upper = *max_upper;
-      RCLCPP_WARN_STREAM(
-        logger, "Parameter " << name << "_max (" << param_max.get<double>() <<
-          ") is greater than the feasible maximum (" << *max_upper << ").");
-    } else {
-      upper = param_max.get<double>();
-    }
-  } else if (max_upper) {
+  if (min_lower && param_max < *min_lower) {
+    upper = *min_lower;
+    RCLCPP_WARN_STREAM(
+      logger, "Parameter " << name << "_max (" << param_max <<
+        ") is less than the feasible minimum (" << *min_lower << ").");
+  } else if (max_upper && param_max > *max_upper) {
     upper = *max_upper;
+    RCLCPP_WARN_STREAM(
+      logger, "Parameter " << name << "_max (" << param_max <<
+        ") is greater than the feasible maximum (" << *max_upper << ").");
+  } else {
+    upper = param_max;
   }
 
   // check for min > max
